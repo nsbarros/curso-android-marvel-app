@@ -3,53 +3,55 @@ package com.example.marvelapp.framework.paging
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.example.core.data.repository.CharactersRemoteDataSource
+import com.example.core.domain.model.Character
 import com.example.marvelapp.framework.network.response.DataWrapperResponse
 import com.example.marvelapp.framework.network.response.toCharacterModel
-import com.example.core.domain.model.Character as Character
 
 class CharactersPagingSource(
     private val remoteDataSource: CharactersRemoteDataSource<DataWrapperResponse>,
     private val query: String
 ) : PagingSource<Int, Character>() {
 
+    @Suppress("TooGenericExceptionCaught")
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Character> {
-        return try{
-            val offset = params.key ?: 0
-            val queries = hashMapOf(
-                "offset" to offset.toString()
-            )
+       return try {
+           val offset = params.key ?: 0
 
-            if(query.isNotEmpty()){
-                queries["nameStartsWith"] = query
-            }
+           val queries = hashMapOf(
+               "offset" to offset.toString()
+           )
 
-            val response = remoteDataSource.fetchCharacters(queries)
+           if(query.isNotEmpty()){
+               queries["nameStartsWith"] = query
+           }
 
-            val responseOffset = response.data.offset
-            val totalCharacters = response.data.total
+           val response = remoteDataSource.fetchCharacters(queries)
 
-            LoadResult.Page(
-                data = response.data.results.map { it.toCharacterModel() },
-                prevKey = null,
-                nextKey = if (responseOffset < totalCharacters) {
-                    responseOffset + LIMIT
-                } else null
-            )
+           val responseOffset = response.data.offset
+           val responseTotal = response.data.total
 
-        }catch (e: Exception){
+           LoadResult.Page(
+               data = response.data.results.map { it.toCharacterModel() },
+               prevKey = null,
+               nextKey = if(responseOffset < responseTotal) {
+                   responseOffset + LIMIT
+               }else null
+           )
+       }catch (e: Exception){
             LoadResult.Error(e)
-        }
+       }
 
     }
 
     override fun getRefreshKey(state: PagingState<Int, Character>): Int? {
-        return state.anchorPosition?.let { anchorPositions ->
-            val anchorPage = state.closestPageToPosition(anchorPositions)
+        return state.anchorPosition?.let { anchorPosition ->
+            val anchorPage = state.closestPageToPosition(anchorPosition)
             anchorPage?.prevKey?.plus(LIMIT) ?: anchorPage?.nextKey?.minus(LIMIT)
         }
     }
 
-    companion object{
+
+    companion object {
         private const val LIMIT = 20
     }
 }

@@ -20,7 +20,9 @@ class CharactersViewHolder(
             .load(character.imageUrl)
             .fallback(
                 R.drawable.ic_img_loading_error
-            )
+            ).error{
+                R.drawable.ic_img_loading_error
+            }
             .into(imageCharacter)
     }
 
